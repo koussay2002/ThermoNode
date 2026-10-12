@@ -1,0 +1,30 @@
+# Plateforme d'intégration continue du TP 5 : Jenkins + SonarQube + Nexus + broker (réseau externe "ci")
+# docker network create ci && docker compose -f ci/platform.compose.yaml up -d
+services:
+  jenkins:
+    image: jenkins/jenkins:lts-jdk17
+    user: root                      # accès au socket Docker : postes de TP uniquement
+    ports: ["8080:8080", "50000:50000"]
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker:ro
+    networks: [ci]
+  sonarqube:
+    image: sonarqube:community
+    ports: ["9000:9000"]
+    environment: { SONAR_ES_BOOTSTRAP_CHECKS_DISABLE: "true" }
+    volumes: [sonar_data:/opt/sonarqube/data, sonar_ext:/opt/sonarqube/extensions]
+    networks: [ci]
+  nexus:
+    image: sonatype/nexus3
+    ports: ["8081:8081", "8082:8082"]
+    volumes: [nexus_data:/nexus-data]
+    networks: [ci]
+  broker:
+    image: eclipse-mosquitto:2
+    ports: ["1883:1883"]
+    volumes: ["./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro"]
+    networks: [ci]
+volumes: { jenkins_home: {}, sonar_data: {}, sonar_ext: {}, nexus_data: {} }
+networks: { ci: { external: true } }

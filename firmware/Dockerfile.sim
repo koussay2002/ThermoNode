@@ -1,0 +1,9 @@
+# Image du simulateur de nœud (binaire hôte + HAL de simulation MQTT)
+FROM gcc:13 AS build
+WORKDIR /src
+COPY . .
+RUN gcc -std=gnu99 -O2 -DTN_SIM -Isrc src/convert.c src/filter.c src/threshold.c src/fault.c src/ringbuf.c src/frame.c src/node.c src/main.c hal/hal_sim.c -o /node-sim
+FROM debian:bookworm-slim
+COPY --from=build /node-sim /usr/local/bin/node-sim
+ENV MQTT_HOST=broker NODE_ID=TN01 INPUT=/scenarios/current.csv PERIOD_MS=1000
+CMD ["node-sim"]

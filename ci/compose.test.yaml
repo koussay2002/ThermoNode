@@ -1,0 +1,30 @@
+# Environnement d'intégration jetable : broker + passerelle + simulateur de nœud
+services:
+  broker:
+    image: eclipse-mosquitto:2
+    ports: ["1883:1883"]
+    volumes: ["./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro"]
+    healthcheck:
+      test: ["CMD", "mosquitto_sub", "-t", "$$SYS/#", "-C", "1", "-i", "hc", "-W", "3"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+  gateway:
+    build: { context: ../gateway }
+    ports: ["8000:8000"]
+    environment: { MQTT_HOST: broker, DB_PATH: /data/gw.sqlite }
+    volumes: ["gwdata:/data"]
+    depends_on:
+      broker: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request;urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      retries: 10
+  node-sim:
+    build: { context: ../firmware, dockerfile: Dockerfile.sim }
+    environment: { MQTT_HOST: broker, NODE_ID: TN01, INPUT: /scenarios/current.csv, PERIOD_MS: "1000" }
+    volumes: ["../tests/scenarios:/scenarios"]
+    depends_on:
+      broker: { condition: service_healthy }
+volumes:
+  gwdata: {}

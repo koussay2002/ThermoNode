@@ -1,0 +1,16 @@
+build/
+dist/
+reports/
+*.o
+*.gcda
+*.gcno
+*.elf
+*.bin
+__pycache__/
+.pytest_cache/
+.venv/
+*.sqlite
+.coverage
+deploy/log/
+tests/scenarios/current.csv
+.scannerwork/

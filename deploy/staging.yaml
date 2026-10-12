@@ -1,0 +1,13 @@
+# Environnement de staging de la passerelle : image versionnée tirée du registre (VERSION fournie par le pipeline)
+services:
+  broker:
+    image: eclipse-mosquitto:2
+    ports: ["1884:1883"]
+    volumes: ["../ci/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro"]
+  gateway:
+    image: ${REGISTRY:-localhost:8082}/thermonode/gateway:${VERSION:-latest}
+    ports: ["8001:8000"]
+    environment: { MQTT_HOST: broker, DB_PATH: /data/gw.sqlite }
+    volumes: ["staging_data:/data"]
+    depends_on: [broker]
+volumes: { staging_data: {} }

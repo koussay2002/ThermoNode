@@ -1,0 +1,16 @@
+[project]
+name = "thermonode-gateway"
+version = "1.0.0"
+description = "Passerelle MQTT ThermoNode"
+requires-python = ">=3.11"
+dependencies = ["paho-mqtt>=2.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests/unit"]
+pythonpath = ["."]   # rend le paquet gateway importable depuis les tests (pytest lancé depuis gateway/)
+markers = ["integration: nécessite docker compose", "flaky_quarantine: test instable en quarantaine"]
+
+[tool.coverage.run]
+branch = true
+source = ["gateway"]
+omit = ["gateway/__main__.py", "gateway/mqtt_client.py"]
