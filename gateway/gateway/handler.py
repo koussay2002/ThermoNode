@@ -29,7 +29,7 @@ class Handler:
         last = self._last_seq.get(f.node_id)
         if last is None:
             last = self.storage.last_seq(f.node_id)
-        if False and last is not None and f.seq <= last:   # TODO doublons
+        if last is not None and f.seq <= last:   # TODO doublons
             self.metrics["frames_duplicate"] += 1
             log.info("doublon ignoré %s seq=%d (dernier=%d)", f.node_id, f.seq, last)
             return None
