@@ -1,5 +1,28 @@
 # Rapport TP3 — ThermoNode
 
+## 1. Techniques appliquées par exigence
+
+| Exigence | Technique | Fichier de test | Nombre de cas |
+|---|---|---|---|
+| EF-02 (conversion) | Partitions d'équivalence + BVA | firmware/test/test_convert.c | 6 |
+| EF-03 (filtre) | Séquences (fenêtre vide/partielle/pleine/glissement) | firmware/test/test_filter.c | 6 |
+| EF-04 (seuil) | Table de décision (R1–R6) + BVA | firmware/test/test_threshold.c | 9 |
+| EF-05 (mesure invalide) | BVA (bornes ADC) + machine à états + MC/DC | test_convert.c, test_node.c, mcdc-EF05.md | 6 + 3 |
+| EF-06 (trame périodique) | Horloge simulée (fake) | test_node.c | 1 |
+| EF-07 (commande seuil) | Partitions (ok/range/CRC invalide) + BVA 19/20/100/101 | test_threshold.c, test_node.c | 4 |
+| EF-08 (commande période) | Partitions (ok/range) + BVA 1/60/61 | test_node.c | 2 |
+| ENF-01 (latence alerte) | Horloge simulée (fake) | test_node.c | 1 |
+| ENF-05 (tampon + doublons) | BVA 0/1/59/60/61 + table de décision + intégration SIL | test_ringbuf.c, test_handler.py, test_reconnect.py | 4 + 8 + 1 |
+| EI-02 (CRC) | Oracle externe normalisé (0x29B1, 0xFFFF) | test_frame.c, test_frame.py | 9 + 4 |
+| EI-03 (JSON) | BVA tampon + partitions invalides | test_frame.c, test_frame.py | 2 |
+| EI-01 (ADC) | Codes impossibles (4096, 65535) — non testable fonctionnellement | — | 0 |
+
+## 2. Journal des défauts
+
+Le journal complet (ID, étape, exigence, test révélateur, symptôme, cause, technique, correction, commit) est dans `docs/journal-defauts.md`. **Neuf défauts** ont été révélés : DEF-01 à DEF-08 (annoncés par le guide) et DEF-04b (supplémentaire, révélé par `test_EI03_json_get_str_rejects_unterminated_and_too_long`).
+
+Chaque défaut a été corrigé par une branche dédiée `fix/DEF-xx-...`, avec un commit `fix(<module>): <quoi> (DEF-xx, <exigence>)` et un merge `--no-ff`.
+
 ## 3. Réponses aux questions Q1–Q11
 
 ### Q3 — Stub, spy ou fake dans hal_double.c
@@ -47,29 +70,6 @@ Transition non testée : ALERT → FAULT (mesure invalide pendant une alerte).
 - **DEF-05 / DEF-08 non révélés au niveau système** (cf. Q11) : le test n'injecte que 30 mesures (< 60 pour le ringbuf) et ne redémarre pas le nœud, donc ni le débordement de tampon ni les doublons ne sont déclenchés au niveau système. Ils sont révélés au niveau unitaire.
 
 ---
-
-## 1. Techniques appliquées par exigence
-
-| Exigence | Technique | Fichier de test | Nombre de cas |
-|---|---|---|---|
-| EF-02 (conversion) | Partitions d'équivalence + BVA | firmware/test/test_convert.c | 6 |
-| EF-03 (filtre) | Séquences (fenêtre vide/partielle/pleine/glissement) | firmware/test/test_filter.c | 6 |
-| EF-04 (seuil) | Table de décision (R1–R6) + BVA | firmware/test/test_threshold.c | 9 |
-| EF-05 (mesure invalide) | BVA (bornes ADC) + machine à états + MC/DC | test_convert.c, test_node.c, mcdc-EF05.md | 6 + 3 |
-| EF-06 (trame périodique) | Horloge simulée (fake) | test_node.c | 1 |
-| EF-07 (commande seuil) | Partitions (ok/range/CRC invalide) + BVA 19/20/100/101 | test_threshold.c, test_node.c | 4 |
-| EF-08 (commande période) | Partitions (ok/range) + BVA 1/60/61 | test_node.c | 2 |
-| ENF-01 (latence alerte) | Horloge simulée (fake) | test_node.c | 1 |
-| ENF-05 (tampon + doublons) | BVA 0/1/59/60/61 + table de décision + intégration SIL | test_ringbuf.c, test_handler.py, test_reconnect.py | 4 + 8 + 1 |
-| EI-02 (CRC) | Oracle externe normalisé (0x29B1, 0xFFFF) | test_frame.c, test_frame.py | 9 + 4 |
-| EI-03 (JSON) | BVA tampon + partitions invalides | test_frame.c, test_frame.py | 2 |
-| EI-01 (ADC) | Codes impossibles (4096, 65535) — non testable fonctionnellement | — | 0 |
-
-## 2. Journal des défauts
-
-Le journal complet (ID, étape, exigence, test révélateur, symptôme, cause, technique, correction, commit) est dans `docs/journal-defauts.md`. **Neuf défauts** ont été révélés : DEF-01 à DEF-08 (annoncés par le guide) et DEF-04b (supplémentaire, révélé par `test_EI03_json_get_str_rejects_unterminated_and_too_long`).
-
-Chaque défaut a été corrigé par une branche dédiée `fix/DEF-xx-...`, avec un commit `fix(<module>): <quoi> (DEF-xx, <exigence>)` et un merge `--no-ff`.
 
 ## 4. Couverture et ressources
 
