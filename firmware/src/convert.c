@@ -2,7 +2,7 @@
 
 bool range_check(int32_t centi)
 {
-    return (centi >= TN_TEMP_MIN_CENTI) && (centi < TN_TEMP_MAX_CENTI);
+    return (centi >= TN_TEMP_MIN_CENTI) && (centi <= TN_TEMP_MAX_CENTI);
 }
 
 int32_t temp_from_adc(uint16_t adc, bool *valid)
