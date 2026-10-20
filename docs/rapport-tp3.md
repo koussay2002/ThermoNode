@@ -24,3 +24,19 @@ Reformulation proposée :
 ### Q4-bis — Règle non couverte par test_threshold.c
 
 R1 (transition d'état du nœud) n'est pas couverte ici : test_threshold.c teste le module seuil isolé, sans machine à états ni filtre. C'est normal : R1 relève du niveau nœud et est couverte à l'étape 5 (test_node.c).
+
+### Q6 — Table d'états et transitions
+
+États : INIT, NORMAL, ALERT, FAULT.
+Événements : init_ok, 3 filtrées > seuil, < seuil − hyst, mesure invalide, 5 valides consécutives, commande set_threshold.
+
+| État \ Événement | init_ok | 3 filtrées > seuil | < seuil − hyst | mesure invalide | 5 valides consécutives | set_threshold |
+|---|---|---|---|---|---|---|
+| INIT | → NORMAL | — | — | → FAULT (implicite) | — | ack |
+| NORMAL | — | → ALERT | — | → FAULT | — | ack ok/range/CRC |
+| ALERT | — | reste ALERT | → NORMAL (borne testée) | → FAULT (non testé) | — | — |
+| FAULT | — | — | — | reste FAULT | → NORMAL (test EF05_recovers, révèle DEF-06) | ack (non testé) |
+
+Transitions couvertes : INIT→NORMAL, NORMAL→ALERT (3 tests EF-04), ALERT→NORMAL (dont borne d'hystérésis), NORMAL→FAULT (hors plage + capteur figé), commandes EF-07/EF-08/EI-03 (ok/range/format/CRC).
+Transition non testée : ALERT → FAULT (mesure invalide pendant une alerte).
+Événement non spécifié : FAULT → ALERT (faut-il repasser en NORMAL d'abord, ou aller directement en ALERT si les 5 mesures valides sont elles-mêmes > seuil ?). À préciser dans requirements.md.
