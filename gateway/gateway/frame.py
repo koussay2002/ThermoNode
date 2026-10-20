@@ -56,14 +56,12 @@ def parse_frame(text: str) -> Frame:
         raise FrameError(f"champ manquant: {exc.args[0]}") from exc
     if not isinstance(node_id, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,7}", node_id):
         raise FrameError("id")
-    if isinstance(seq, bool) or not isinstance(seq, int):
+    if isinstance(seq, bool) or not isinstance(seq, int) or seq < 0:
         raise FrameError("seq")
     if isinstance(t, bool) or not isinstance(t, int) or t < 0:
         raise FrameError("t")
-    try:
-        temp = float(temp)
-    except (TypeError, ValueError) as exc:
-        raise FrameError("temp") from exc
+    if isinstance(temp, bool) or not isinstance(temp, (int, float)):
+        raise FrameError("temp")
     if state not in STATES:
         raise FrameError("state")
     return Frame(node_id, seq, t, float(temp), state)
