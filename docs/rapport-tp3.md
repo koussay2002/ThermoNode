@@ -40,3 +40,8 @@ R1 (transition d'état du nœud) n'est pas couverte ici : test_threshold.c teste
 Transitions couvertes : INIT→NORMAL, NORMAL→ALERT (3 tests EF-04), ALERT→NORMAL (dont borne d'hystérésis), NORMAL→FAULT (hors plage + capteur figé), commandes EF-07/EF-08/EI-03 (ok/range/format/CRC).
 Transition non testée : ALERT → FAULT (mesure invalide pendant une alerte).
 Événement non spécifié : FAULT → ALERT (faut-il repasser en NORMAL d'abord, ou aller directement en ALERT si les 5 mesures valides sont elles-mêmes > seuil ?). À préciser dans requirements.md.
+
+## Limites de la suite
+
+- **ENF-05 système** : le test d'intégration est marqué `xfail` car `hal_sim.c` ne relit pas les lignes ajoutées à son fichier scénario après EOF (`clearerr` + `fseek` insuffisants sur glibc). La logique ENF-05 est validée au niveau unitaire par `test_ENF05_*` (firmware) et `test_ENF05_*` (gateway), qui passent.
+- **DEF-05 / DEF-08 non révélés au niveau système** (cf. Q11) : le test n'injecte que 30 mesures (< 60 pour le ringbuf) et ne redémarre pas le nœud, donc ni le débordement de tampon ni les doublons ne sont déclenchés au niveau système. Ils sont révélés au niveau unitaire.

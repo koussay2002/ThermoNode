@@ -38,6 +38,8 @@ thr_event_t threshold_step(int32_t filtered_centi, bool alert_active)
             if (above >= THR_CONSECUTIVE) {
                 ev = THR_RAISE;
             }
+        } else {
+            above = 0u;      /* R6 : une mesure <= seuil rompt la consécution */
         }
     }
     return ev;
