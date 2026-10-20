@@ -11,3 +11,17 @@
 | DEF-07 | 8 | EI-02 (types JSON) | `test_EI02_invalid_frames_are_rejected[temp_string]`, `[seq_negative]` | `DID NOT RAISE FrameError` : `temp:"25.50"` (chaîne) accepté ; `seq:-1` (négatif) accepté | `temp = float(temp)` accepte les chaînes (conversion trop tolérante) ; aucune vérification `seq >= 0` | Valeurs limites / partitions invalides (un vecteur = une anomalie) |
 | DEF-08 | 8 | ENF-05 (dédoublonnage) / EF-G1 (stockage) | `test_ENF05_duplicate_seq_is_ignored`, `test_ENF05_out_of_order_old_frame_is_ignored`, `test_last_seq_survives_restart` | `assert 0 == 1` (frames_duplicate) ; `assert 2 == 1` (out-of-order stocké) ; `(1 == 1 and 0 == 1)` (doublon non restauré au restart) | `handler.py` : la condition `if False and last is not None and f.seq <= last:` désactive tout le dédoublonnage (`if False`), donc les trames en double ou anciennes sont stockées, et `frames_duplicate` reste à 0 | Table de décision (conditions de dédoublonnage) + persistance |
 | DEF-04b (supplémentaire, non listé) | 6 | EI-03 (JSON) | `test_EI03_json_get_str_rejects_unterminated_and_too_long` | `Expected FALSE Was TRUE` : `json_get_str` accepte une chaîne de 13 caractères dans un tampon de 4, ou non terminée | La fonction ne vérifie pas la taille du tampon de destination avant copie, et/ou ne vérifie pas la présence du guillemet fermant | Valeurs limites (BVA tampon) |
+
+## Corrections (étape 12)
+
+| ID | Fichier:ligne | Correction | Commit |
+|---|---|---|---|
+| DEF-01 | convert.c:5 | `<` → `<=` sur TN_TEMP_MAX_CENTI | fix(convert): accepte 125.00 °C... |
+| DEF-02 | filter.c:26 | `i <= count` → `i < count` | fix(filter): corrige l'off-by-one... |
+| DEF-03 | threshold.c:38 | ajout `else { above = 0u; }` | fix(threshold): remet le compteur a zero... |
+| DEF-04 | frame.c:8 | `0x0000u` → `0xFFFFu` | fix(frame): init CRC-16/CCITT-FALSE... |
+| DEF-04b | frame.c:87-127 | copie dans buf[256] + `n+1 >= cap` | fix(frame): json_get_str/int respectent len... |
+| DEF-05 | ringbuf.c:16 | `count > RINGBUF_CAP` → `>=` | fix(ringbuf): corrige la condition de saturation... |
+| DEF-06 | node.c:129 | `if (false)` → `fault_valid_streak >= 5u` + compteur | fix(node): transition FAULT->NORMAL... |
+| DEF-07 | frame.py | `seq < 0` + `isinstance(temp, (int, float))` | fix(frame): types stricts... |
+| DEF-08 | handler.py:32 | `if False and` → `if` | fix(handler): active le dedoublonnage... |
