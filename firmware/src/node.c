@@ -14,7 +14,9 @@ static uint32_t     seq;
 static uint32_t     data_period_ms = NODE_DATA_PERIOD_MS;
 static uint32_t     acq_period_ms  = NODE_PERIOD_MIN_MS;
 static uint32_t     last_data_ms;
+
 static int32_t      last_filtered;
+static uint32_t     fault_valid_streak;
 static char         node_id[TN_ID_LEN] = "TN01";
 
 void node_set_id(const char *id)
@@ -34,6 +36,7 @@ void node_init(int32_t high_centi, int32_t hyst_centi)
     seq = 0u;
     last_data_ms = hal_clock_ms();
     last_filtered = 0;
+    fault_valid_streak = 0u;
     acq_period_ms = NODE_PERIOD_MIN_MS;
     filter_reset();
     fault_reset();
@@ -99,6 +102,10 @@ void node_step(void)
     if (state == STATE_INIT) {
         state = STATE_NORMAL;          /* init_ok : la première mesure est traitée en NORMAL */
     }
+	if (state == STATE_FAULT) {
+           if (valid && !fault) { fault_valid_streak++; }
+           else                 { fault_valid_streak = 0u; }
+    }
 
     switch (state) {
         case STATE_NORMAL:
@@ -126,8 +133,9 @@ void node_step(void)
             }
             break;
         case STATE_FAULT:
-            if (false) {   /* TODO reprise */
+            if (fault_valid_streak >= 5u) {   /* EF-05 : 5 mesures valides consecutives */
                 state = STATE_NORMAL;
+                fault_valid_streak = 0u;
                 filter_reset();
                 threshold_reset_counter();
                 last_filtered = filter_push(centi, valid);
