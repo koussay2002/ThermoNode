@@ -87,10 +87,15 @@ bool frame_crc_ok(const uint8_t *json, size_t len)
 bool json_get_int(const uint8_t *json, size_t len, const char *key, int32_t *value)
 {
     char pat[32];
+    char buf[256];
     const char *p;
-    (void)len;
+    if (len >= sizeof buf) {
+        return false;
+    }
+    memcpy(buf, json, len);
+    buf[len] = '\0';
     snprintf(pat, sizeof pat, "\"%s\":", key);
-    p = strstr((const char *)json, pat);
+    p = strstr(buf, pat);
     if (p == NULL) {
         return false;
     }
@@ -101,15 +106,19 @@ bool json_get_int(const uint8_t *json, size_t len, const char *key, int32_t *val
     *value = (int32_t)strtol(p, NULL, 10);
     return true;
 }
-
 bool json_get_str(const uint8_t *json, size_t len, const char *key, char *out, size_t cap)
 {
     char pat[32];
+    char buf[256];
     const char *p, *e;
     size_t n;
-    (void)len;
+    if (len >= sizeof buf) {
+        return false;
+    }
+    memcpy(buf, json, len);
+    buf[len] = '\0';
     snprintf(pat, sizeof pat, "\"%s\":\"", key);
-    p = strstr((const char *)json, pat);
+    p = strstr(buf, pat);
     if (p == NULL) {
         return false;
     }
@@ -119,7 +128,7 @@ bool json_get_str(const uint8_t *json, size_t len, const char *key, char *out, s
         return false;
     }
     n = (size_t)(e - p);
-    if (n + 1u > cap) {
+    if (n + 1u >= cap) {        /* au lieu de n + 1u > cap : pas de place pour '\0' si n+1 >= cap */
         return false;
     }
     memcpy(out, p, n);
