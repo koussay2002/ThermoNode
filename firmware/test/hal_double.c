@@ -6,7 +6,6 @@
 #define MAX_FRAMES  64
 
 static uint16_t adc_values[MAX_ADC];   /* utilisé une fois hal_adc_read complété */
-__attribute__((unused)) static uint16_t *adc_values_ref = adc_values;
 static size_t   adc_n, adc_i;
 static uint32_t fake_ms;
 static bool     connected = true;
@@ -28,9 +27,9 @@ void hal_double_reset(void)
     cmd_pending = false; wd_kicks = 0;
     memset(frame_len, 0, sizeof frame_len);
 }
-void hal_double_push_adc(uint16_t v)   { (void)v; /* TODO G3 : mémoriser la séquence */ }
-void hal_double_advance_ms(uint32_t d) { (void)d; /* TODO G3 : horloge simulée */ }
 void hal_double_set_connected(bool c)  { connected = c; }
+void hal_double_push_adc(uint16_t v)   { if (adc_n < MAX_ADC) { adc_values[adc_n++] = v; } }
+void hal_double_advance_ms(uint32_t d) { fake_ms += d; }
 int  hal_double_send_calls(void)       { return send_calls; }
 int  hal_double_ack_calls(void)        { return ack_calls; }
 uint32_t hal_double_last_send_ms(void) { return last_send_ms; }
@@ -57,7 +56,9 @@ void hal_double_queue_command(const char *json)
 /* --- implémentation du HAL --- */
 uint16_t hal_adc_read(void)
 {
-    return 931u; /* TODO G3 : rejouer la séquence poussée par hal_double_push_adc */
+    if (adc_n == 0u) { return 0u; }
+    if (adc_i < adc_n) { return adc_values[adc_i++]; }
+    return adc_values[adc_n - 1u]; /* séquence épuisée : répète la dernière valeur */
 }
 uint32_t hal_clock_ms(void)      { return fake_ms; }
 bool     hal_radio_connected(void) { return connected; }
