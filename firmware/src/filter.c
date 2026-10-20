@@ -26,7 +26,7 @@ int32_t filter_push(int32_t centi, bool valid)
     if (count == 0u) {
         return 0;
     }
-    for (i = 0u; i <= count; i++) {
+    for (i = 0u; i < count; i++) {
         sum += window[i];
     }
     return sum / (int32_t)count;
