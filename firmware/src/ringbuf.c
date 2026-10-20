@@ -11,7 +11,7 @@ size_t ringbuf_count(void) { return count; }
 bool ringbuf_push(const frame_t *f)
 {
     bool kept = true;
-    if (count > RINGBUF_CAP) {
+    if (count >= RINGBUF_CAP) {
         tail = (tail + 1u) % RINGBUF_CAP;   /* écrase la plus ancienne */
         count--;
         kept = false;
