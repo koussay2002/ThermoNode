@@ -25,51 +25,108 @@ Chaque défaut a été corrigé par une branche dédiée `fix/DEF-xx-...`, avec 
 
 ## 3. Réponses aux questions Q1–Q11
 
+### Q1 — Valeurs calculées à la main (tableau étape 1.1)
+
+| ADC | Calcul (ADC×33000/4096 − 5000) | centi | Valide ? | Partition / limite |
+|---:|---|---:|:---:|---|
+| 0 | 0 − 5000 | −5000 | non | invalide basse (−50 °C) |
+| 124 | 124×33000/4096 = 999 ; 999−5000 | −4001 | non | juste sous −40 °C |
+| 125 | 125×33000/4096 = 1007 ; 1007−5000 | −3993 | oui | 1re valeur valide |
+| 931 | 931×33000/4096 = 7500 ; 7500−5000 | 2500 | oui | nominal 25 °C |
+| 2048 | 2048×33000/4096 = 16500 ; 16500−5000 | 11500 | oui | médiane de l'échelle |
+| 2172 | 2172×33000/4096 = 17499 ; 17499−5000 | 12499 | oui | dernière valeur valide (124,99 °C) |
+| 2173 | 2173×33000/4096 = 17507 ; 17507−5000 | 12507 | non | juste au-dessus de 125 °C |
+| 4095 | 4095×33000/4096 = 32991 ; 32991−5000 | 27991 | non | borne ADC 12 bits |
+| 4096 | impossible (ADC > TN_ADC_MAX) | — | — | code impossible (EI-01) |
+| 65535 | impossible (uint16_t hors ADC 12 bits) | — | — | limite du type |
+
+Ces valeurs confirment le cours : 4095 → 27991 ; 2173 → 12507 ; 2172 → 12499. L'oracle est calculé **avant** de lire le code.
+
+### Q2 — Expected 100 Was 2600 : d'où vient le 2600 ?
+
+Le filtre fait une moyenne glissante sur 5 cases (`int32_t window[5]`). Le bug (DEF-02) est la boucle `for (i = 0; i <= count; i++)` : quand `count == 1` (première mesure valide), `i` va de 0 à 1, donc on lit `window[1]` qui n'a pas encore été écrit (valeur résiduelle 2500, laissée par un test précédent ou par l'initialisation). La somme vaut `100 + 2500 = 2600`, divisée par `count = 1` → 2600. Aucune valeur 2600 n'a été poussée : c'est une lecture mémoire voisine.
+
+**Pourquoi le régime établi passe ?** Dans `steady_state_five_identical`, toutes les valeurs sont 2500 et la case [1] (ou [5]) contient aussi 2500 — le bug est invisible.
+
+**Le sanitizer est un oracle différent** : l'assertion Unity juge la **valeur** (100 attendu, 2600 obtenu) ; ASan juge la **mémoire** (`index 5 out of bounds for type 'int32_t [5]'`). ASan identifie la **cause** (off-by-one), l'assertion identifie le **symptôme**.
+
 ### Q3 — Stub, spy ou fake dans hal_double.c
 
-- `hal_adc_read` : stub (rejoue une séquence injectée ; joue aussi le rôle de fake car il imite le comportement d'un capteur).
-- `hal_clock_ms` : fake (horloge simulée, état interne, avance contrôlée).
-- `hal_radio_send` : spy (enregistre les appels et la dernière trame).
-- `hal_radio_recv` : stub (file de commandes prédéfinies).
+- `hal_adc_read` : **stub** (rejoue une séquence injectée ; joue aussi le rôle de fake car il imite un capteur).
+- `hal_clock_ms` : **fake** (horloge simulée, état interne, avance contrôlée).
+- `hal_radio_send` : **spy** (enregistre les appels et la dernière trame).
+- `hal_radio_recv` : **stub** (file de commandes prédéfinies).
 
-Séquence épuisée : répéter la dernière valeur plutôt que renvoyer 0, car (1) cela correspond au comportement d'un capteur stable, (2) évite de déclencher par erreur EF-05 (capteur figé), (3) rend le test déterministe.
+**Séquence épuisée → répéter la dernière valeur** : (1) c'est le comportement d'un capteur stable, (2) évite de déclencher par erreur EF-05 (capteur figé), (3) rend le test déterministe.
 
 ### Q4 — Reformulation d'EF-04
 
-Spec actuelle (docs/requirements.md, ligne 10) : « Alerte si la température filtrée est strictement supérieure au seuil haut pendant 3 mesures consécutives ; levée lorsque la température filtrée est inférieure à seuil − 5 °C ; une seule trame d'alerte émise ».
+Spec actuelle (ligne 10 de `docs/requirements.md`) : « Alerte si la température filtrée est strictement supérieure au seuil haut pendant 3 mesures consécutives ; levée lorsque la température filtrée est inférieure à seuil − 5 °C ; une seule trame d'alerte émise ».
 
 Le mot « consécutives » implique qu'une mesure non supérieure rompt la consécution : DEF-03 est donc bien un défaut, pas une ambiguïté. Deux points restent à préciser : (a) le traitement des mesures invalides, (b) l'explicitation du reset.
 
-Reformulation proposée :
+**Reformulation proposée :**
 
-> EF-04 — Le nœud passe en ALERT si et seulement si trois mesures filtrées valides consécutives sont strictement supérieures au seuil haut configuré. Toute mesure filtrée valide inférieure ou égale au seuil haut réinitialise le compteur de consécution. Les mesures invalides sont exclues en amont par le filtre (EF-03). En ALERT, le nœud revient à NORMAL si une mesure filtrée valide est strictement inférieure à seuil_haut − hystérésis. Une valeur comprise entre seuil_haut − hystérésis (inclus) et seuil_haut (inclus) maintient ALERT. Une seule trame d'alerte est émise par entrée en ALERT.
+> EF-04 — Le nœud passe en ALERT si et seulement si **trois mesures filtrées valides consécutives** sont **strictement supérieures** au seuil haut configuré. Toute mesure filtrée valide **inférieure ou égale** au seuil haut **réinitialise** le compteur de consécution. Les mesures invalides sont exclues en amont par le filtre (EF-03). En ALERT, le nœud revient à NORMAL si une mesure filtrée valide est **strictement inférieure** à `seuil_haut − hystérésis`. Une valeur comprise entre `seuil_haut − hystérésis` (inclus) et `seuil_haut` (inclus) maintient ALERT. Une seule trame d'alerte est émise par entrée en ALERT.
 
 ### Q4-bis — Règle non couverte par test_threshold.c
 
-R1 (transition d'état du nœud) n'est pas couverte ici : test_threshold.c teste le module seuil isolé, sans machine à états ni filtre. C'est normal : R1 relève du niveau nœud et est couverte à l'étape 5 (test_node.c).
+R1 (transition d'état du nœud) n'est pas couverte ici : `test_threshold.c` teste le module seuil isolé, sans machine à états ni filtre. C'est normal : R1 relève du niveau nœud et est couverte à l'étape 5 (`test_node.c`).
+
+### Q5 — Test qui échoue « pour une mauvaise raison »
+
+Le test `test_EF04_alert_after_three_above` avec `feed(ADC_70, 3)` échoue (`Expected 2 Was 1`). Ce n'est pas un défaut du code, c'est une erreur de conception du test.
+
+Calcul à la main de la moyenne glissante (5 mesures à 25 °C puis n mesures à 70 °C) : 34, 43, 52, **61**, **70**, **70**. Il faut donc **6 mesures brutes à 70 °C**, pas 3, pour que 3 mesures filtrées consécutives dépassent 60.
+
+Si on avait utilisé `ADC_130` (hors plage) « pour être sûr de dépasser », le nœud serait passé en **FAULT** (EF-05), pas en ALERT, et le test aurait échoué pour une autre raison.
+
+**Règle de méthode** : (1) calculer l'oracle à la main avant d'écrire le test ; (2) n'activer qu'une seule condition à la fois ; (3) distinguer « test faux » et « code faux » avant de corriger.
 
 ### Q6 — Table d'états et transitions
 
-États : INIT, NORMAL, ALERT, FAULT.
-Événements : init_ok, 3 filtrées > seuil, < seuil − hyst, mesure invalide, 5 valides consécutives, commande set_threshold.
+États : INIT, NORMAL, ALERT, FAULT. Événements : init_ok, 3 filtrées > seuil, < seuil − hyst, mesure invalide, 5 valides consécutives, commande set_threshold.
 
-| État \ Événement | init_ok | 3 filtrées > seuil | < seuil − hyst | mesure invalide | 5 valides consécutives | set_threshold |
+| État \ Événement | init_ok | 3 filtrées > seuil | < seuil − hyst | mesure invalide | 5 valides | set_threshold |
 |---|---|---|---|---|---|---|
-| INIT | → NORMAL | — | — | → FAULT (implicite) | — | ack |
-| NORMAL | — | → ALERT | — | → FAULT | — | ack ok/range/CRC |
-| ALERT | — | reste ALERT | → NORMAL (borne testée) | → FAULT (non testé) | — | — |
-| FAULT | — | — | — | reste FAULT | → NORMAL (test EF05_recovers, révèle DEF-06) | ack (non testé) |
+| INIT | → NORMAL | — | — | → FAULT | — | ack |
+| NORMAL | — | → ALERT | — | → FAULT | — | ack |
+| ALERT | — | reste ALERT | → NORMAL | → FAULT (non testé) | — | — |
+| FAULT | — | — | — | reste FAULT | → NORMAL | ack |
 
-Transitions couvertes : INIT→NORMAL, NORMAL→ALERT (3 tests EF-04), ALERT→NORMAL (dont borne d'hystérésis), NORMAL→FAULT (hors plage + capteur figé), commandes EF-07/EF-08/EI-03 (ok/range/format/CRC).
-Transition non testée : ALERT → FAULT (mesure invalide pendant une alerte).
-Événement non spécifié : FAULT → ALERT (faut-il repasser en NORMAL d'abord, ou aller directement en ALERT si les 5 mesures valides sont elles-mêmes > seuil ?). À préciser dans requirements.md.
+Transitions couvertes : INIT→NORMAL, NORMAL→ALERT (3 tests EF-04), ALERT→NORMAL (dont borne d'hystérésis), NORMAL→FAULT (hors plage + figé), commandes EF-07/EF-08/EI-03.
 
-## Limites de la suite
+Transition non testée : **ALERT → FAULT** (mesure invalide pendant une alerte). Événement non spécifié : **FAULT → ALERT** (faut-il repasser par NORMAL d'abord ?). À préciser dans `requirements.md`.
 
-- **ENF-05 système** : le test d'intégration est marqué `xfail` car `hal_sim.c` ne relit pas les lignes ajoutées à son fichier scénario après EOF (`clearerr` + `fseek` insuffisants sur glibc). La logique ENF-05 est validée au niveau unitaire par `test_ENF05_*` (firmware) et `test_ENF05_*` (gateway), qui passent.
-- **DEF-05 / DEF-08 non révélés au niveau système** (cf. Q11) : le test n'injecte que 30 mesures (< 60 pour le ringbuf) et ne redémarre pas le nœud, donc ni le débordement de tampon ni les doublons ne sont déclenchés au niveau système. Ils sont révélés au niveau unitaire.
+### Q7 — CRC-16/XMODEM vs CCITT-FALSE
 
----
+`0x31C3` est la valeur de contrôle de **CRC-16/XMODEM** (poly 0x1021, init **0x0000**, xorout 0x0000). Pour **CRC-16/CCITT-FALSE** (poly 0x1021, init **0xFFFF**, xorout 0x0000), la valeur est `0x29B1`. La seule différence de paramètre est la **valeur initiale** : 0x0000 vs 0xFFFF.
+
+**Pourquoi `frame_has_all_fields_and_valid_crc` passe malgré DEF-04 ?** Parce que `frame_build` (émetteur) et `frame_crc_ok` (vérificateur) utilisent **le même** CRC défectueux : ils sont cohérents entre eux. Seul un **oracle externe normalisé** (0x29B1) révèle le défaut.
+
+**TP 0 (`gateway_rejected_crc = 100 %`)** : la gateway Python (CCITT-FALSE) rejetait les trames du firmware C (XMODEM). C'est **le firmware qui avait tort** (DEF-04). L'oracle qui tranche est la valeur normalisée 0x29B1.
+
+### Q8 — Pourquoi l'oracle externe du CRC est-il indépendant du code ?
+
+Un CRC n'est pas « ce que renvoie la fonction » mais une **valeur de contrôle normalisée** par une spec (poly, init, refin, refout, xorout). Pour CRC-16/CCITT-FALSE, `crc("123456789") = 0x29B1` et `crc("") = 0xFFFF`. Ces valeurs sont publiées et **ne dépendent pas** de l'implémentation. C'est un oracle **externe** : si `frame_build` et `frame_crc_ok` utilisent le même CRC « faux », les deux sont cohérents entre eux et les tests `frame_has_all_fields_and_valid_crc` / `corrupted_frame_fails_crc` passent — mais l'oracle normalisé révèle DEF-04. C'est le principe de la diapo 5 : l'oracle ne doit pas être calculé par le code testé.
+
+### Q9 — Lien avec la « surprise » du TP 0
+
+Au TP 0, la gateway Python (CCITT-FALSE, init 0xFFFF) rejetait **100 %** des trames du firmware C (XMODEM, init 0x0000). C'était **le firmware qui avait tort** (DEF-04). L'oracle qui a tranché est la valeur normalisée `0x29B1` : le code C produisait `0x31C3`, valeur de XMODEM, pas de CCITT-FALSE. Après correction de l'init à `0xFFFF`, les deux programmes sont alignés et les trames ne sont plus rejetées.
+
+### Q10 — Une seule trame cumulant plusieurs anomalies
+
+Si on avait écrit un **seul** vecteur cumulant `temp:"25.50"` (chaîne) + `seq:-1` (négatif) + CRC faux, `pytest.raises(FrameError)` aurait été satisfait par la **première anomalie détectée** (le CRC), et le test aurait **passé au vert**. On aurait conclu à tort que `parse_frame` rejette **toutes** les anomalies, alors que `temp_string` et `seq_negative` sont tolérées. Le diagnostic serait impossible.
+
+**Règle** : un cas de test = **une seule anomalie**, avec un `id=` lisible (diapo 8). C'est ce que fait `pytest.mark.parametrize` du guide.
+
+### Q11 — Pourquoi le test système ne révèle-t-il ni DEF-05 ni DEF-08 ?
+
+Le test n'injecte que **30 mesures** (< 60 pour le ringbuf) → le tampon n'atteint jamais sa limite → DEF-05 invisible. Il ne **redémarre pas le nœud** ni n'envoie de doublons → DEF-08 invisible.
+
+**Pour les révéler au niveau système** : (a) injecter **61 mesures** pendant la coupure (révèle DEF-05 : la 61e doit être écrasée) ; (b) **redémarrer le nœud** après une coupure et vérifier que la gateway ignore les séquences déjà vues (révèle DEF-08).
+
+**Pourquoi préfère-t-on les révéler au niveau unitaire ?** Plus rapide, plus déterministe, cause isolée. Un test système qui échoue est coûteux à diagnostiquer et peut être instable.
 
 ## 4. Couverture et ressources
 
