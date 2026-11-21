@@ -1,0 +1,4 @@
+# Suppressions cppcheck (faux positifs et dérogations documentées dans docs/misra-deviations.md)
+unusedFunction
+missingIncludeSystem
+*:test/*
