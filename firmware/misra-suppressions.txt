@@ -11,3 +11,4 @@ misra-c2012-21.1:src/main.c         # DEV-006
 misra-c2012-18.4:src/frame.c        # DEV-005 : arithmetique de pointeurs dans le JSON
 misra-c2012-8.9:src/*               # DEV-007 : etat persistant entre appels, portee fichier voulue
 misra-c2012-8.7:src/*               # faux positif : fonctions appelees depuis test/ et hal/, hors perimetre analyse
+misra-c2012-2.5:src/main.c          # DEV-006 : macro _POSIX_C_SOURCE du bloc TN_SIM, hote seulement
