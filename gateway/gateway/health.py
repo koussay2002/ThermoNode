@@ -8,6 +8,7 @@ from .handler import Handler
 
 def start_health_server(handler: Handler, port: int = 8000) -> HTTPServer:
     class H(BaseHTTPRequestHandler):
+        """Handler HTTP de la sonde de sante."""
         def do_GET(self):
             if self.path == "/health":
                 body = b"ok"

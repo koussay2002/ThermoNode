@@ -13,6 +13,7 @@ log = logging.getLogger("gateway.mqtt")
 
 
 class GatewayMqtt:
+    """Client MQTT de la passerelle."""
     def __init__(self, handler: Handler, host: str | None = None, port: int | None = None):
         self.handler = handler
         self.host = host or os.environ.get("MQTT_HOST", "localhost")
