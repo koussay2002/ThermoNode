@@ -8,6 +8,7 @@ RETENTION_S = 90 * 24 * 3600
 
 
 class Storage:
+    """Stockage des mesures ThermoNode."""
     def __init__(self, db_path: str | Path):
         self.path = str(db_path)
         self.con = sqlite3.connect(self.path, check_same_thread=False)
@@ -17,6 +18,8 @@ class Storage:
         )
         self.con.commit()
 
+    # pylint: disable=too-many-arguments,too-many-positional-arguments
+    # signature imposee par le schema measures (6 colonnes), decouper n'apporterait rien
     def insert(self, node_id: str, seq: int, t: int, temp: float, state: str, now: int | None = None) -> None:
         now = int(time.time()) if now is None else now
         self.con.execute("INSERT OR IGNORE INTO measures VALUES (?,?,?,?,?,?)", (node_id, seq, t, temp, state, now))

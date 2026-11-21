@@ -11,6 +11,7 @@ log = logging.getLogger("gateway")
 
 
 class Handler:
+    """Gestionnaire de messages entrants."""
     def __init__(self, db_path: str, on_alert: Callable[[Frame], None] | None = None):
         self.storage = Storage(db_path)
         self.on_alert = on_alert
@@ -23,13 +24,13 @@ class Handler:
             f = parse_frame(text)
         except FrameError as exc:
             self.metrics["frames_rejected"] += 1
-            self.metrics[f"rejected_{str(exc).split(':')[0]}"] += 1
+            self.metrics[f"rejected_{str(exc).split(':', maxsplit=1)[0]}"] += 1
             log.warning("trame rejetée (%s): %.80s", exc, text)
             return None
         last = self._last_seq.get(f.node_id)
         if last is None:
             last = self.storage.last_seq(f.node_id)
-        if last is not None and f.seq <= last:   # TODO doublons
+        if last is not None and f.seq <= last:   # doublon detecte
             self.metrics["frames_duplicate"] += 1
             log.info("doublon ignoré %s seq=%d (dernier=%d)", f.node_id, f.seq, last)
             return None
