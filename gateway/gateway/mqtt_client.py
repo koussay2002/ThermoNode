@@ -26,6 +26,8 @@ class GatewayMqtt:
         self.client.on_message = self._on_message
         self.handler.on_alert = self.relay_alert
 
+    # pylint: disable=too-many-arguments,too-many-positional-arguments
+    # signature imposee par paho-mqtt (callback on_connect)
     def _on_connect(self, client, _userdata, _flags, reason_code, _properties=None):
         log.info("connecté au broker %s:%d (%s)", self.host, self.port, reason_code)
         client.subscribe("thermonode/+/data")
