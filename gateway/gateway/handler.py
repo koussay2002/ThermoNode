@@ -24,7 +24,7 @@ class Handler:
             f = parse_frame(text)
         except FrameError as exc:
             self.metrics["frames_rejected"] += 1
-            self.metrics[f"rejected_{str(exc).split(':')[0]}"] += 1
+            self.metrics[f"rejected_{str(exc).split(':', maxsplit=1)[0]}"] += 1
             log.warning("trame rejetée (%s): %.80s", exc, text)
             return None
         last = self._last_seq.get(f.node_id)
