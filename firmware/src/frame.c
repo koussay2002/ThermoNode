@@ -1,4 +1,3 @@
-#include <errno.h>
 #include "frame.h"
 #include <stdio.h>
 #include <string.h>
@@ -62,6 +61,56 @@ size_t frame_build(uint8_t *out, size_t cap, const frame_t *f)
     return (size_t)n;
 }
 
+/* Analyse d'un entier decimal signe (sans errno) ; false si aucun chiffre ou debordement int32 */
+static bool parse_dec(const char *p, int32_t *value)
+{
+    bool neg = false;
+    uint32_t acc = 0u;
+    size_t i = 0u;
+    size_t digits = 0u;
+    if (p[0] == '-') {
+        neg = true;
+        i = 1u;
+    }
+    while ((p[i] >= '0') && (p[i] <= '9')) {
+        uint32_t d = ((uint32_t)(unsigned char)p[i]) - 48u;
+        if (acc > (((uint32_t)INT32_MAX - d) / 10u)) {
+            return false;
+        }
+        acc = (acc * 10u) + d;
+        digits++;
+        i++;
+    }
+    if (digits == 0u) {
+        return false;
+    }
+    *value = neg ? -(int32_t)acc : (int32_t)acc;
+    return true;
+}
+
+/* Analyse de exactement 4 chiffres hexadecimaux (sans errno) */
+static bool parse_hex4(const char *p, uint16_t *out)
+{
+    uint32_t acc = 0u;
+    size_t i;
+    for (i = 0u; i < 4u; i++) {
+        uint32_t c = (uint32_t)(unsigned char)p[i];
+        uint32_t d;
+        if ((c >= 48u) && (c <= 57u)) {
+            d = c - 48u;
+        } else if ((c >= 65u) && (c <= 70u)) {
+            d = (c - 65u) + 10u;
+        } else if ((c >= 97u) && (c <= 102u)) {
+            d = (c - 97u) + 10u;
+        } else {
+            return false;
+        }
+        acc = (acc << 4u) | d;
+    }
+    *out = (uint16_t)acc;
+    return true;
+}
+
 bool frame_crc_ok(const uint8_t *json, size_t len)
 {
     static const char key[] = ",\"crc\":\"";
@@ -84,7 +133,9 @@ bool frame_crc_ok(const uint8_t *json, size_t len)
     if ((pos + (sizeof(key) - 1u) + hexlen + 1u) > len) {
         return false;
     }
-    given = (uint16_t)strtoul((const char *)p + sizeof(key) - 1u, NULL, 16);
+    if (!parse_hex4((const char *)p + sizeof(key) - 1u, &given)) {
+        return false;
+    }
     rest = len - (pos + sizeof(key) - 1u + hexlen + 1u);
     (void)memcpy(tmp, json, pos);
     (void)memcpy(tmp + pos, json + pos + sizeof(key) - 1u + hexlen + 1u, rest);
@@ -111,9 +162,7 @@ bool json_get_int(const uint8_t *json, size_t len, const char *key, int32_t *val
     if ((*p != '-') && ((*p < '0') || (*p > '9'))) {
         return false;
     }
-    errno = 0;
-    *value = (int32_t)strtol(p, NULL, 10);
-    return true;
+    return parse_dec(p, value);
 }
 bool json_get_str(const uint8_t *json, size_t len, const char *key, char *out, size_t cap)
 {
