@@ -14,3 +14,4 @@ __pycache__/
 deploy/log/
 tests/scenarios/current.csv
 .scannerwork/
+tp4/
