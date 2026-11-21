@@ -76,7 +76,7 @@ bool frame_crc_ok(const uint8_t *json, size_t len)
         return false;
     }
     pos = (size_t)(p - json);
-    if (pos + sizeof(key) - 1u + hexlen + 1u > len) {
+    if ((pos + (sizeof(key) - 1u) + hexlen + 1u) > len) {
         return false;
     }
     given = (uint16_t)strtoul((const char *)p + sizeof(key) - 1u, NULL, 16);
@@ -132,7 +132,7 @@ bool json_get_str(const uint8_t *json, size_t len, const char *key, char *out, s
         return false;
     }
     n = (size_t)(e - p);
-    if (n + 1u >= cap) {        /* au lieu de n + 1u > cap : pas de place pour '\0' si n+1 >= cap */
+    if ((n + 1u) >= cap) {        /* au lieu de n + 1u > cap : pas de place pour '\0' si n+1 >= cap */
         return false;
     }
     memcpy(out, p, n);

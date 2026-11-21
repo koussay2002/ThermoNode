@@ -170,7 +170,7 @@ void node_poll_commands(void)
     uint8_t buf[TN_FRAME_MAX];
     char cmd[24];
     int32_t value;
-    int len = hal_radio_recv(buf, sizeof buf - 1u);
+    int len = hal_radio_recv(buf, (sizeof buf) - 1u);
     if (len <= 0) {
         return;
     }
