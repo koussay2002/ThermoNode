@@ -17,11 +17,12 @@ static uint32_t     last_data_ms;
 
 static int32_t      last_filtered;
 static uint32_t     fault_valid_streak;
+// cppcheck-suppress misra-c2012-7.4 ; faux positif : tableau char initialise par un litteral, pas un pointeur
 static char         node_id[TN_ID_LEN] = "TN01";
 
 void node_set_id(const char *id)
 {
-    strncpy(node_id, id, TN_ID_LEN - 1u);
+    (void)strncpy(node_id, id, TN_ID_LEN - 1u);
     node_id[TN_ID_LEN - 1u] = '\0';
 }
 
@@ -69,9 +70,10 @@ static void flush_buffer(void)
 static void emit(node_state_t st, int32_t temp_centi)
 {
     frame_t f;
-    memset(&f, 0, sizeof f);
-    memcpy(f.id, node_id, TN_ID_LEN);
-    f.seq = seq++;
+    (void)memset(&f, 0, sizeof f);
+    (void)memcpy(f.id, node_id, TN_ID_LEN);
+    f.seq = seq;
+    seq++;
     f.t = hal_clock_ms() / 1000u;
     f.temp_centi = temp_centi;
     f.state = st;
@@ -169,7 +171,7 @@ void node_poll_commands(void)
     uint8_t buf[TN_FRAME_MAX];
     char cmd[24];
     int32_t value;
-    int len = hal_radio_recv(buf, sizeof buf - 1u);
+    int len = hal_radio_recv(buf, (sizeof buf) - 1u);
     if (len <= 0) {
         return;
     }
@@ -192,7 +194,7 @@ void node_poll_commands(void)
             send_ack(cmd, "nack", "range");
         }
     } else if (strcmp(cmd, "set_period") == 0) {
-        if ((value >= 1) && (value <= 60)) {
+        if ((value > 0) && ((uint32_t)value >= (NODE_PERIOD_MIN_MS / 1000u)) && ((uint32_t)value <= (NODE_PERIOD_MAX_MS / 1000u))) {
             acq_period_ms = (uint32_t)value * 1000u;
             send_ack(cmd, "ok", "");
         } else {
