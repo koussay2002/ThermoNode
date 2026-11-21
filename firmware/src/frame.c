@@ -54,7 +54,7 @@ size_t frame_build(uint8_t *out, size_t cap, const frame_t *f)
     if (cap < (size_t)n + 14u + 1u) {
         return 0u;
     }
-    memcpy(out, payload, (size_t)n - 1u);
+    (void)memcpy(out, payload, (size_t)n - 1u);
     n = snprintf((char *)out + (n - 1), cap - ((size_t)n - 1u), ",\"crc\":\"%04X\"}", crc) + (n - 1);
     return (size_t)n;
 }
@@ -82,8 +82,8 @@ bool frame_crc_ok(const uint8_t *json, size_t len)
     }
     given = (uint16_t)strtoul((const char *)p + sizeof(key) - 1u, NULL, 16);
     rest = len - (pos + sizeof(key) - 1u + hexlen + 1u);
-    memcpy(tmp, json, pos);
-    memcpy(tmp + pos, json + pos + sizeof(key) - 1u + hexlen + 1u, rest);
+    (void)memcpy(tmp, json, pos);
+    (void)memcpy(tmp + pos, json + pos + sizeof(key) - 1u + hexlen + 1u, rest);
     calc = crc16_ccitt_false(tmp, pos + rest);
     return calc == given;
 }
@@ -96,9 +96,9 @@ bool json_get_int(const uint8_t *json, size_t len, const char *key, int32_t *val
     if (len >= sizeof buf) {
         return false;
     }
-    memcpy(buf, json, len);
+    (void)memcpy(buf, json, len);
     buf[len] = '\0';
-    snprintf(pat, sizeof pat, "\"%s\":", key);
+    (void)snprintf(pat, sizeof pat, "\"%s\":", key);
     p = strstr(buf, pat);
     if (p == NULL) {
         return false;
@@ -121,9 +121,9 @@ bool json_get_str(const uint8_t *json, size_t len, const char *key, char *out, s
     if (len >= sizeof buf) {
         return false;
     }
-    memcpy(buf, json, len);
+    (void)memcpy(buf, json, len);
     buf[len] = '\0';
-    snprintf(pat, sizeof pat, "\"%s\":\"", key);
+    (void)snprintf(pat, sizeof pat, "\"%s\":\"", key);
     p = strstr(buf, pat);
     if (p == NULL) {
         return false;
@@ -137,7 +137,7 @@ bool json_get_str(const uint8_t *json, size_t len, const char *key, char *out, s
     if ((n + 1u) >= cap) {        /* au lieu de n + 1u > cap : pas de place pour '\0' si n+1 >= cap */
         return false;
     }
-    memcpy(out, p, n);
+    (void)memcpy(out, p, n);
     out[n] = '\0';
     return true;
 }

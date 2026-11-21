@@ -21,7 +21,7 @@ static char         node_id[TN_ID_LEN] = "TN01";
 
 void node_set_id(const char *id)
 {
-    strncpy(node_id, id, TN_ID_LEN - 1u);
+    (void)strncpy(node_id, id, TN_ID_LEN - 1u);
     node_id[TN_ID_LEN - 1u] = '\0';
 }
 
@@ -69,8 +69,8 @@ static void flush_buffer(void)
 static void emit(node_state_t st, int32_t temp_centi)
 {
     frame_t f;
-    memset(&f, 0, sizeof f);
-    memcpy(f.id, node_id, TN_ID_LEN);
+    (void)memset(&f, 0, sizeof f);
+    (void)memcpy(f.id, node_id, TN_ID_LEN);
     f.seq = seq;
     seq++;
     f.t = hal_clock_ms() / 1000u;
