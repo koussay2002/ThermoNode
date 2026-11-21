@@ -26,11 +26,11 @@ class GatewayMqtt:
         self.client.on_message = self._on_message
         self.handler.on_alert = self.relay_alert
 
-    def _on_connect(self, client, userdata, flags, reason_code, properties=None):
+    def _on_connect(self, client, _userdata, _flags, reason_code, _properties=None):
         log.info("connecté au broker %s:%d (%s)", self.host, self.port, reason_code)
         client.subscribe("thermonode/+/data")
 
-    def _on_message(self, client, userdata, msg):
+    def _on_message(self, _client, _userdata, msg):
         try:
             self.handler.on_data(msg.payload.decode("utf-8", errors="replace"))
         except Exception:                      # jamais de plantage sur une trame hostile
