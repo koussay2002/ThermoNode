@@ -71,7 +71,8 @@ static void emit(node_state_t st, int32_t temp_centi)
     frame_t f;
     memset(&f, 0, sizeof f);
     memcpy(f.id, node_id, TN_ID_LEN);
-    f.seq = seq++;
+    f.seq = seq;
+    seq++;
     f.t = hal_clock_ms() / 1000u;
     f.temp_centi = temp_centi;
     f.state = st;
