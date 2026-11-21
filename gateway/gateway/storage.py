@@ -8,6 +8,7 @@ RETENTION_S = 90 * 24 * 3600
 
 
 class Storage:
+    """Stockage des mesures ThermoNode."""
     def __init__(self, db_path: str | Path):
         self.path = str(db_path)
         self.con = sqlite3.connect(self.path, check_same_thread=False)

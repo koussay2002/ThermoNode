@@ -11,6 +11,7 @@ log = logging.getLogger("gateway")
 
 
 class Handler:
+    """Gestionnaire de messages entrants."""
     def __init__(self, db_path: str, on_alert: Callable[[Frame], None] | None = None):
         self.storage = Storage(db_path)
         self.on_alert = on_alert

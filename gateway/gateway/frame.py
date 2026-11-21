@@ -14,6 +14,7 @@ class FrameError(ValueError):
 
 @dataclass(frozen=True)
 class Frame:
+    """Parseur de trame JSON."""
     node_id: str
     seq: int
     t: int
