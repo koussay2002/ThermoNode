@@ -2,3 +2,12 @@
 unusedFunction
 missingIncludeSystem
 *:test/*
+normalCheckLevelMaxBranches         # information cppcheck (analyse des branches limitee), pas un constat
+misra-c2012-15.5:src/*              # DEV-004 : retours anticipes dans les gardes (cf. docs/misra-deviations.md)
+misra-c2012-21.6:src/frame.c        # DEV-002
+misra-c2012-21.6:src/node.c         # DEV-002
+misra-c2012-21.10:src/main.c        # DEV-006 : bloc TN_SIM, hote seulement
+misra-c2012-21.1:src/main.c         # DEV-006
+misra-c2012-18.4:src/frame.c        # DEV-005 : arithmetique de pointeurs dans le JSON
+misra-c2012-8.9:src/*               # DEV-007 : etat persistant entre appels, portee fichier voulue
+misra-c2012-8.7:src/*               # faux positif : fonctions appelees depuis test/ et hal/, hors perimetre analyse
