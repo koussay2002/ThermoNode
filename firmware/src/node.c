@@ -21,8 +21,7 @@ static char         node_id[TN_ID_LEN] = "TN01";
 
 void node_set_id(const char *id)
 {
-    strncpy(node_id, id, TN_ID_LEN - 1u);
-    node_id[TN_ID_LEN - 1u] = '\0';
+    strncpy(node_id, id, TN_ID_LEN);
 }
 
 void node_set_data_period_ms(uint32_t ms) { data_period_ms = ms; }

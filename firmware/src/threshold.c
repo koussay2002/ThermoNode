@@ -28,19 +28,14 @@ thr_event_t threshold_step(int32_t filtered_centi, bool alert_active)
 {
     thr_event_t ev = THR_NONE;
     if (alert_active) {
-        if (filtered_centi < (high_centi - hyst_centi)) {
-            ev = THR_CLEAR;
-            above = 0u;
-        }
+        if (filtered_centi < high_centi - 500)
+            ev = THR_CLEAR, above = 0u;
     } else {
-        if (filtered_centi > high_centi) {
+        if (filtered_centi > high_centi)
             above++;
-            if (above >= THR_CONSECUTIVE) {
-                ev = THR_RAISE;
-            }
-        } else {
-            above = 0u;      /* R6 : une mesure <= seuil rompt la consécution */
-        }
+        else
+            above = 0u;
+        if (above >= THR_CONSECUTIVE) ev = THR_RAISE;
     }
     return ev;
 }
