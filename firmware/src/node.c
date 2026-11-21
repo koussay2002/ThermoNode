@@ -17,6 +17,7 @@ static uint32_t     last_data_ms;
 
 static int32_t      last_filtered;
 static uint32_t     fault_valid_streak;
+// cppcheck-suppress misra-c2012-7.4 ; faux positif : tableau char initialise par un litteral, pas un pointeur
 static char         node_id[TN_ID_LEN] = "TN01";
 
 void node_set_id(const char *id)
